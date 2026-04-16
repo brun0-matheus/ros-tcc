@@ -3,3 +3,4 @@ __pycache__
 build/*.o
 main
 benchmark
+test_bs

@@ -10,14 +10,17 @@ all: default
 OBJECTS = build/client.o build/group.o build/hash.o build/random.o build/server.o
 HEADERS = $(wildcard *.h)
 
+# remove built-in rule
+%: %.c
+
 build/%.o: %.c $(HEADERS)
 	$(CC) $(CFLAGS) -c $< -o $@
 
-main: $(OBJECTS) build/main.o
-	$(CC) $(OBJECTS) build/main.o -Wall $(LIBS) -o main
-
-benchmark: $(OBJECTS) build/benchmark.o
-	$(CC) $(OBJECTS) build/benchmark.o -Wall $(LIBS) -o benchmark
+%: build/%.o $(OBJECTS)
+	$(CC) $(OBJECTS) $< -Wall $(LIBS) -o $@
 
 clean:
 	-rm -f build/*
+	-rm -f main
+	-rm -f benchmark
+	-rm -f test_bs
