@@ -185,9 +185,119 @@ char verify_sign(
 
     char retcode = group_equals(&rhs, &tmp_el);
 
+    /*printf("Msg: %s\n", msg);
+    puts("U");
+    group_print(U);
+    puts("V");
+    group_print(V);
+    puts("X");
+    group_print(X);*/
+
     mpz_clears(c, d, tmp, n, NULL);
     group_el_free(&tmp_el);
     group_el_free(&rhs);
 
     return retcode;
+}
+
+client_ros_session1 client_challenge_ros_pt1(
+        const group_el *pubkey,
+        const group_el *U,
+        const group_el *V,
+        random_algo *rnd
+) {
+    client_ros_session1 session;
+    mpz_t tmp;
+
+    const group *gp = group_from_el(pubkey);
+    if(group_from_el(U) != gp) _abort("All group ellements should be from the same group (U and X differ)");
+    if(group_from_el(V) != gp) _abort("All group ellements should be from the same group (V and X differ)");
+    
+    mpz_inits(session.d, session.n, tmp, NULL);
+
+    group_el_inits(gp, &session.X, &session.blindV, &session.U, &session.V, NULL);
+
+    group_order(session.n, gp);
+    group_copy(&session.X, pubkey);
+    group_copy(&session.U, U);
+    group_copy(&session.V, V);
+
+    // Compute common d
+    random_below(session.d, session.n, rnd);
+
+    // Compute common blindV
+    mpz_sub(tmp, session.n, session.d);
+    group_multiply(&session.blindV, U, tmp);
+    group_add(&session.blindV, &session.blindV, V);
+
+    // Save inverted d 
+    mpz_invert(session.d, session.d, session.n);
+
+    session.freed = 0;
+
+    mpz_clear(tmp);
+    return session;
+}
+
+client_ros_session2 client_challenge_ros_pt2(
+        mpz_t c,
+        mpz_t d,
+        const char* msg,
+        int msg_size,
+        random_algo *rnd,
+        client_ros_session1* sess1
+) {
+    client_ros_session2 sess;
+    sess.cte = sess1;
+    const group *gp = group_from_el(&sess1->U);
+
+    mpz_inits(sess.blindC, sess.blindD, sess.c, sess.u, NULL);
+    group_el_init(&sess.blindU, gp);
+
+    // copy d
+    mpz_set(d, sess.cte->d);
+    
+    // Gen U
+    random_below(sess.u, sess.cte->n, rnd);
+    group_multiply_gen(&sess.blindU, gp, sess.u);
+
+    // Compute chals
+    calc_hash(sess.blindC, sess.blindD, &sess.cte->X, &sess.blindU, &sess.cte->blindV, msg, msg_size);
+
+    // Compute c
+    mpz_mul(c, sess.blindC, sess.blindD);
+    mpz_mod(c, c, sess.cte->n);
+    mpz_mul(c, c, d);
+    mpz_mod(c, c, sess.cte->n);
+
+    mpz_set(sess.c, c);
+    return sess;
+}
+
+char client_sign_ros(
+        mpz_t blindZ,
+        group_el *blindU,
+        group_el *blindV,
+        const mpz_t z,
+        const client_ros_session2 *sess
+) {
+    group_copy(blindU, &sess->blindU);
+    group_copy(blindV, &sess->cte->blindV);
+
+    mpz_mul(blindZ, sess->blindD, sess->u);
+    mpz_sub(blindZ, z, blindZ);
+    mpz_mod(blindZ, blindZ, sess->cte->n);
+
+    return 1;  // assume the signer is honest
+}
+
+void client_free_ros(client_ros_session1 *s1, client_ros_session2 *s2) {
+    if(!s1->freed) {
+        mpz_clears(s1->d, s1->n, NULL);
+        group_el_frees(&s1->X, &s1->blindV, &s1->U, &s1->V, NULL);
+        s1->freed = 1;
+    }
+
+    mpz_clears(s2->blindC, s2->blindD, s2->c, s2->u, NULL);
+    group_el_free(&s2->blindU);
 }

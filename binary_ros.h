@@ -19,7 +19,7 @@ void binary_ros_set_candidate(binary_ros_data *data, int sess, int idx, mpz_t va
 
 mpz_t* binary_ros_compute_coefficients(binary_ros_data *data);
 
-mpz_t* binary_ros_select_values(binary_ros_data *data, mpz_t target);
+int* binary_ros_select_values(binary_ros_data *data, mpz_t target);
 
 void binary_ros_clear_data(binary_ros_data *data);
 

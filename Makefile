@@ -7,7 +7,7 @@ CFLAGS = -O2 -Wall
 default: $(TARGET)
 all: default
 
-OBJECTS = build/client.o build/group.o build/hash.o build/random.o build/server.o
+OBJECTS = build/client.o build/group.o build/hash.o build/random.o build/server.o build/binary_ros.o
 HEADERS = $(wildcard *.h)
 
 # remove built-in rule

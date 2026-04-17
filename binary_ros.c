@@ -28,11 +28,6 @@ void binary_ros_set_candidate(binary_ros_data *data, int sess, int idx, mpz_t va
     if(idx != 0 && idx != 1) _abort("Invalid index");
 
     idx = _real_idx(sess, idx);
-    if(data->mat[idx] != NULL) _abort("This value was already set");
-
-    // idx^1 gives the other other value in the same session
-    if(data->mat[idx^1] != NULL && mpz_cmp(data->mat[idx^1], val) == 0) _abort("Cannot repeat the value in the same session");
-
     mpz_init_set(data->mat[idx], val);
     data->cnt_empty--;
 }
@@ -61,17 +56,16 @@ mpz_t* binary_ros_compute_coefficients(binary_ros_data *data) {
     return ret;
 }
 
-mpz_t* binary_ros_select_values(binary_ros_data *data, mpz_t target) {
+int* binary_ros_select_values(binary_ros_data *data, mpz_t target) {
      mpz_t tmp;
      mpz_init(tmp);
 
      mpz_add(tmp, target, data->cte_term);
      mpz_mod(tmp, tmp, data->n);
 
-     mpz_t *ret = malloc(data->num_sess * sizeof(mpz_t));
+     int *ret = malloc(data->num_sess * sizeof(int));
      for(int i = 0; i < data->num_sess; i++) {
-         int idx = _real_idx(i, mpz_tstbit(tmp, i));
-         mpz_init_set(ret[i], data->mat[idx]);
+         ret[i] = mpz_tstbit(tmp, i);
      }
 
      mpz_clear(tmp);
