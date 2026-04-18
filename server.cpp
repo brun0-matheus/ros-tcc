@@ -38,7 +38,10 @@ mpz_class Server::finish_session(size_t sess_id, const mpz_class &c, const mpz_c
         _abort("Session is already closed");
     sessions[sess_id].closed = true;
 
-    mpz_class ret = sessions[sess_id].v - d * sessions[sess_id].u + c*d*x;
+    mpz_class tmp = c*d;
+    self_mod(tmp, gp->order());
+
+    mpz_class ret = sessions[sess_id].v - d * sessions[sess_id].u + tmp*x;
     self_mod(ret, gp->order());
 
     //mpz_clears(sessions[sess_id].v.get_mpz_t(), sessions[sess_id].u.get_mpz_t(), NULL);
