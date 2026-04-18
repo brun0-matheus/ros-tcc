@@ -6,7 +6,7 @@
 
 #define HASH_SIZE 32
 
-void finish_hash(SHA256_CTX ctx, char opt, mpz_t out, mpz_t n) {
+void finish_hash(SHA256_CTX ctx, char opt, mpz_t out, const mpz_t n) {
     const int WORD = sizeof(mp_limb_t);
     const int numlimb = (HASH_SIZE + WORD - 1) / WORD;
 
@@ -20,40 +20,34 @@ void finish_hash(SHA256_CTX ctx, char opt, mpz_t out, mpz_t n) {
 }
 
 void calc_hash(
-        mpz_t c,
-        mpz_t d,
-        const group_el *X,
-        const group_el *U,
-        const group_el *V,
-        const char *msg,
-        int msg_size
+        mpz_class &c,
+        mpz_class &d,
+        const GroupEl &X,
+        const GroupEl &U,
+        const GroupEl &V,
+        const Bytes &msg
 ) {
     SHA256_CTX ctx;
-    mpz_t n;
 
-    mpz_init(n);
-    group_order(n, group_from_el(X));
-
+    const mpz_class& n = X.get_group()->order();
     SHA256_Init(&ctx);
 
-    char *s = group_str(X);
+    char *s = X.str();
     SHA256_Update(&ctx, s, strlen(s));
     free(s);
 
-    s = group_str(U);
+    s = U.str();
     SHA256_Update(&ctx, s, strlen(s));
     free(s);
 
-    s = group_str(V);
+    s = V.str();
     SHA256_Update(&ctx, s, strlen(s));
     free(s);
 
-    SHA256_Update(&ctx, msg, msg_size);
+    SHA256_Update(&ctx, msg.data(), msg.size());
 
     // Calculate c
-    finish_hash(ctx, 'c', c, n);
-    finish_hash(ctx, 'd', d, n);
-
-    mpz_clear(n);
+    finish_hash(ctx, 'c', c.get_mpz_t(), n.get_mpz_t());
+    finish_hash(ctx, 'd', d.get_mpz_t(), n.get_mpz_t());
 }
 

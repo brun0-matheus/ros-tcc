@@ -1,23 +1,25 @@
-LIBS = -lm -lcrypto -lgmp
-CC = gcc
-CFLAGS = -O2 -Wall 
+LIBS = -lm -lcrypto -lgmp -lgmpxx
+CXX = g++
+CXXFLAGS = -O2 -Wall -g
 
 .PHONY: default all clean
 
 default: $(TARGET)
 all: default
 
-OBJECTS = build/client.o build/group.o build/hash.o build/random.o build/server.o build/binary_ros.o
+#OBJECTS = build/client.o build/group.o build/hash.o build/random.o build/server.o build/binary_ros.o build/signature.o build/utils.o
+OBJECTS = build/client.o build/group.o build/hash.o build/random.o build/server.o build/signature.o build/utils.o
+
 HEADERS = $(wildcard *.h)
 
 # remove built-in rule
-%: %.c
+%: %.cpp
 
-build/%.o: %.c $(HEADERS)
-	$(CC) $(CFLAGS) -c $< -o $@
+build/%.o: %.cpp $(HEADERS)
+	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 %: build/%.o $(OBJECTS)
-	$(CC) $(OBJECTS) $< -Wall $(LIBS) -o $@
+	$(CXX) $(OBJECTS) $< -Wall $(LIBS) -o $@
 
 clean:
 	-rm -f build/*

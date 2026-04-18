@@ -1,30 +1,32 @@
 #ifndef _SERVER_H 
 #define _SERVER_H 
 
-#include <gmp.h>
+#include <gmpxx.h>
+#include <vector>
 
 #include "random.h"
 #include "group.h"
 
-typedef struct server_session_struct {
-    mpz_t x, u, v, n;
+typedef struct {
+    mpz_class u, v;
+    bool closed;
 } server_session;
 
-server_session server_commit(
-        group_el *u,
-        group_el *v,
-        const group *gp,
-        const mpz_t privkey,
-        random_algo *rnd
-);
+class Server {
+private:
+    mpz_class x;
+    GroupEl X;
+    std::vector<server_session> sessions;
 
-void server_answer(
-        mpz_t z,
-        const mpz_t c,
-        const mpz_t d,
-        const server_session* session
-);
+    const Group *gp;
+    random_algo *rnd;
+public:
+    Server(const Group *_gp, random_algo *_rnd);  // generates random key
 
-void server_free_session(server_session* session);
+    size_t open_session(GroupEl &U, GroupEl &V);
+    mpz_class finish_session(size_t sess_id, const mpz_class &c, const mpz_class &d);
+
+    const GroupEl& pubkey() const;
+};
 
 #endif 

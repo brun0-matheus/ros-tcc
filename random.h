@@ -2,7 +2,7 @@
 #define _RANDOM_H 
 
 #include <openssl/bn.h>
-#include <gmp.h>
+#include <gmpxx.h>
 
 typedef struct random_struct random_algo;
 
@@ -10,7 +10,7 @@ random_algo* random_init();
 
 // Generates a random integer 0 <= out < lim
 //void random_below(BIGNUM *out, const BIGNUM *lim, random_algo *rnd);
-void random_below(mpz_t out, const mpz_t lim, random_algo *rnd);
+void random_below(mpz_class &out, const mpz_class &lim, random_algo *rnd);
 
 void random_free(random_algo **rnd);
 

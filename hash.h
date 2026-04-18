@@ -1,18 +1,18 @@
 #ifndef _HASH_H 
 #define _HASH_H 
 
-#include <gmp.h>
+#include <gmpxx.h>
 
 #include "group.h"
+#include "utils.h"
 
 void calc_hash(
-        mpz_t c,
-        mpz_t d,
-        const group_el *X,
-        const group_el *U,
-        const group_el *V,
-        const char *msg,
-        int msg_size
+        mpz_class &c,
+        mpz_class &d,
+        const GroupEl &X,
+        const GroupEl &U,
+        const GroupEl &V,
+        const Bytes &msg
 );
 
 #endif 

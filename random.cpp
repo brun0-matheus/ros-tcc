@@ -7,7 +7,7 @@ struct random_struct {
 };
 
 random_algo* random_init() {
-    random_algo *ret = malloc(sizeof(random_algo));
+    random_algo *ret = (random_algo*) malloc(sizeof(random_algo));
     return ret;
 }
 
@@ -15,11 +15,12 @@ random_algo* random_init() {
 /*void random_below(BIGNUM *out, const BIGNUM *lim, random_algo *rnd) {
     BN_rand_range(out, lim);
 }*/
-void random_below(mpz_t out, const mpz_t lim, random_algo *rnd) {
-    BIGNUM *out_bn = BN_new(), *lim_bn = mpz_to_bignum(lim);
+void random_below(mpz_class &out, const mpz_class &lim, random_algo *rnd) {
+    BIGNUM *out_bn = BN_new();
+    BIGNUM *lim_bn = mpz_to_bignum(lim.get_mpz_t());
 
     BN_rand_range(out_bn, lim_bn);
-    bignum_to_mpz(out, out_bn);
+    bignum_to_mpz(out.get_mpz_t(), out_bn);
 
     BN_free(out_bn);
     BN_free(lim_bn);
@@ -35,7 +36,7 @@ void random_free(random_algo **rnd) {
 BIGNUM* mpz_to_bignum(const mpz_t gmp_num) {
     // Determine the number of bytes needed
     size_t count;
-    unsigned char *buf = mpz_export(NULL, &count, 1, 1, 1, 0, gmp_num);
+    unsigned char *buf = (unsigned char*) mpz_export(NULL, &count, 1, 1, 1, 0, gmp_num);
 
     BIGNUM *bn = BN_bin2bn(buf, count, NULL);
     free(buf);
@@ -46,7 +47,7 @@ BIGNUM* mpz_to_bignum(const mpz_t gmp_num) {
 void bignum_to_mpz(mpz_t gmp_num, const BIGNUM *bn) {
     // Export BIGNUM to big-endian byte array
     int num_bytes = BN_num_bytes(bn);
-    unsigned char *buf = malloc(num_bytes);
+    unsigned char *buf = (unsigned char*) malloc(num_bytes);
     BN_bn2bin(bn, buf);
 
     // Import into GMP
