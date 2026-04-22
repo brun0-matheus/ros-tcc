@@ -14,6 +14,8 @@ static void _abort(const char* msg) {
     exit(1);
 }
 
+const Group *GroupEl::default_gp = NULL;
+
 Group::Group(int option) {
     gp = EC_GROUP_new_by_curve_name(NID_secp224r1);
     
@@ -37,7 +39,12 @@ Group::~Group() {
 const GroupEl& Group::generator() const { return G; }
 const mpz_class& Group::order() const { return n; }
 
-GroupEl::GroupEl() {}
+GroupEl::GroupEl() {
+    if(default_gp != NULL) {
+        gp = default_gp;
+        pt = EC_POINT_new(gp->gp);
+    }
+}
 
 GroupEl::GroupEl(const Group *_gp) {
     gp = _gp;
@@ -100,6 +107,12 @@ bool GroupEl::operator==(const GroupEl &a) const {
     return EC_POINT_cmp(gp->gp, a.pt, pt, gp->bctx)^1;
 }
 
+void GroupEl::set_default_group(const Group *gp) {
+    default_gp = gp;
+}
+
+const GroupEl& GroupEl::generator() const { return gp->generator(); }
+const mpz_class& GroupEl::order() const { return gp->order(); }
 
 char* GroupEl::str() const {
     BIGNUM *x = BN_new();

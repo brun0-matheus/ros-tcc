@@ -15,20 +15,18 @@ void show_group_stats() {
     lst_add = cnt_group_add, lst_mul = cnt_group_mul, lst_mul_gen = cnt_group_mul_gen, lst_mul_comb = cnt_group_mul_comb;
 }
 
-int main() {
-    Group _gp(0);
-    Group *gp = &_gp;
+void test(Group *gp) {
     Bytes msg = {'T', 'e', 's', 't', 0};
 
     // Initiliaziation
     random_algo *rnd = random_init();
     if(rnd == NULL) {
         puts("Could not initialize random generator");
-        return 1;
+        return;
     }
 
     Server server(gp, rnd);
-    ClientSession client(&server, gp, rnd);
+    ClientSession client(&server, rnd);
     Signature sig = client.finish_sign(msg);
 
     if(sig.validate()) {
@@ -41,6 +39,14 @@ int main() {
 
     random_free(&rnd);
 
+}
+
+int main() {
+    Group _gp(0);
+    Group *gp = &_gp;
+    GroupEl::set_default_group(gp);
+
+    test(gp);
     return 0;
 }
 

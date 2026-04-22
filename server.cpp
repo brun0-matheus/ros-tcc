@@ -9,7 +9,7 @@ static void _abort(const char* msg) {
     exit(1);
 }
 
-Server::Server(const Group *_gp, random_algo *_rnd): X(_gp), gp(_gp), rnd(_rnd) {
+Server::Server(const Group *_gp, random_algo *_rnd): gp(_gp), rnd(_rnd) {
     const mpz_class& n = gp->order();
     random_below(x, n, rnd);
     X.mul_gen(x);

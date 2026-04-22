@@ -9,10 +9,11 @@
 
 class Signature {
 private:
+public:
     mpz_class w;
     GroupEl U, V, X;
     Bytes msg;
-public:
+
     Signature(
         const mpz_class &_w, 
         const GroupEl &_U,

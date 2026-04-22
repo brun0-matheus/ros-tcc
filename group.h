@@ -13,8 +13,9 @@ private:
     EC_POINT *pt;
     const Group *gp;
 
-    GroupEl(); // does not initilize, only used by Group
+    static const Group *default_gp;
 public:
+    GroupEl(); // use default group
     GroupEl(const Group *gp);
     GroupEl(const GroupEl& ot);
     ~GroupEl();
@@ -31,6 +32,11 @@ public:
     void print() const;
 
     bool operator==(const GroupEl& a) const;
+
+    static void set_default_group(const Group *gp);
+
+    const GroupEl& generator() const;
+    const mpz_class& order() const;
 
     friend class Group;
 };

@@ -1,4 +1,5 @@
 #include "client.h"
+#include "utils.h"
 #include "hash.h"
 
 #include <stdio.h>
@@ -11,14 +12,13 @@ static void _abort(const char* msg) {
 
 ClientSession::ClientSession(
     Server *_server,
-    const Group *_gp,
     random_algo *_rnd
-): server(_server), U(_gp), V(_gp), blindU(_gp), blindV(_gp), gp(_gp), rnd(_rnd) {
+): server(_server), rnd(_rnd) {
     sess_id = server->open_session(U, V);
 }
 
 Signature ClientSession::finish_sign(const Bytes &msg) {
-    const mpz_class &n = gp->order();
+    const mpz_class &n = U.get_group()->order();
     mpz_class pi, delta, rho, epsilon, c, d, w, blindW, blindC, blindD, tmp;
 
     // Generate random blindness coefs 
@@ -74,105 +74,54 @@ Signature ClientSession::finish_sign(const Bytes &msg) {
 }
 
 
-/*
-client_ros_session1 client_challenge_ros_pt1(
-        const group_el *pubkey,
-        const group_el *U,
-        const group_el *V,
-        random_algo *rnd
-) {
-    client_ros_session1 session;
-    mpz_t tmp;
-
-    const group *gp = group_from_el(pubkey);
-    if(group_from_el(U) != gp) _abort("All group ellements should be from the same group (U and X differ)");
-    if(group_from_el(V) != gp) _abort("All group ellements should be from the same group (V and X differ)");
+ClientRosSession::ClientRosSession(
+    Server *_server,
+    random_algo *_rnd, 
+    int _num_op, 
+    const Bytes &_msg
+): server(_server), rnd(_rnd), num_options(_num_op), msg(_msg),
+    blindU(_num_op), u(_num_op), blindC(_num_op), blindD(_num_op), c(_num_op) {
     
-    mpz_inits(session.d, session.n, tmp, NULL);
+    sess_id = server->open_session(U, V);
+    const mpz_class &n = U.get_group()->order();
 
-    group_el_inits(gp, &session.X, &session.blindV, &session.U, &session.V, NULL);
+    random_below(d, n, rnd);
 
-    group_order(session.n, gp);
-    group_copy(&session.X, pubkey);
-    group_copy(&session.U, U);
-    group_copy(&session.V, V);
+    mpz_class tmp = n - d;
+    blindV.mul(U, tmp);
+    blindV.add(blindV, V);
 
-    // Compute common d
-    random_below(session.d, session.n, rnd);
-
-    // Compute common blindV
-    mpz_sub(tmp, session.n, session.d);
-    group_multiply(&session.blindV, U, tmp);
-    group_add(&session.blindV, &session.blindV, V);
-
-    // Save inverted d 
-    mpz_invert(session.d, session.d, session.n);
-
-    session.freed = 0;
-
-    mpz_clear(tmp);
-    return session;
+    mpz_class_invert(tmp, d, n);
+    for(int i = 0; i < num_options; i++) {
+        random_below(u[i], n, rnd);
+        blindU[i].mul_gen(u[i]);
+        calc_hash(blindC[i], blindD[i], server->pubkey(), blindU[i], blindV, msg);
+        c[i] = blindC[i] * blindD[i];
+        self_mod(c[i], n);
+        c[i] *= tmp;
+        self_mod(c[i], n);
+    }
 }
 
-client_ros_session2 client_challenge_ros_pt2(
-        mpz_t c,
-        mpz_t d,
-        const char* msg,
-        int msg_size,
-        random_algo *rnd,
-        client_ros_session1* sess1
-) {
-    client_ros_session2 sess;
-    sess.cte = sess1;
-    const group *gp = group_from_el(&sess1->U);
+std::vector<mpz_class> ClientRosSession::ros_values() const {
+    std::vector<mpz_class> ret(num_options);
+    const mpz_class &n = U.get_group()->order();
 
-    mpz_inits(sess.blindC, sess.blindD, sess.c, sess.u, NULL);
-    group_el_init(&sess.blindU, gp);
-
-    // copy d
-    mpz_set(d, sess.cte->d);
-    
-    // Gen U
-    random_below(sess.u, sess.cte->n, rnd);
-    group_multiply_gen(&sess.blindU, gp, sess.u);
-
-    // Compute chals
-    calc_hash(sess.blindC, sess.blindD, &sess.cte->X, &sess.blindU, &sess.cte->blindV, msg, msg_size);
-
-    // Compute c
-    mpz_mul(c, sess.blindC, sess.blindD);
-    mpz_mod(c, c, sess.cte->n);
-    mpz_mul(c, c, d);
-    mpz_mod(c, c, sess.cte->n);
-
-    mpz_set(sess.c, c);
-    return sess;
-}
-
-char client_sign_ros(
-        mpz_t blindZ,
-        group_el *blindU,
-        group_el *blindV,
-        const mpz_t z,
-        const client_ros_session2 *sess
-) {
-    group_copy(blindU, &sess->blindU);
-    group_copy(blindV, &sess->cte->blindV);
-
-    mpz_mul(blindZ, sess->blindD, sess->u);
-    mpz_sub(blindZ, z, blindZ);
-    mpz_mod(blindZ, blindZ, sess->cte->n);
-
-    return 1;  // assume the signer is honest
-}
-
-void client_free_ros(client_ros_session1 *s1, client_ros_session2 *s2) {
-    if(!s1->freed) {
-        mpz_clears(s1->d, s1->n, NULL);
-        group_el_frees(&s1->X, &s1->blindV, &s1->U, &s1->V, NULL);
-        s1->freed = 1;
+    for(int i = 0; i < num_options; i++) {
+        ret[i] = c[i] * d;
+        self_mod(ret[i], n);
     }
 
-    mpz_clears(s2->blindC, s2->blindD, s2->c, s2->u, NULL);
-    group_el_free(&s2->blindU);
-}*/
+    return ret;
+}
+
+Signature ClientRosSession::finish_sign(int option, mpz_class &w) const {
+    const mpz_class &n = U.get_group()->order();
+    w = server->finish_session(sess_id, c[option], d);
+
+    mpz_class blindW = w;
+    blindW -= blindD[option] * u[option];
+    self_mod(blindW, n);
+
+    return Signature(blindW, blindU[option], blindV, server->pubkey(), msg);
+}
