@@ -16,8 +16,14 @@ static void _abort(const char* msg) {
 
 const Group *GroupEl::default_gp = NULL;
 
+const int NUM_OPTS = 4;
+const int OPTS[NUM_OPTS] = {NID_secp224r1, NID_X9_62_prime256v1, NID_secp384r1, NID_secp521r1};
+
 Group::Group(int option) {
-    gp = EC_GROUP_new_by_curve_name(NID_secp224r1);
+    if(option < 0 || option >= NUM_OPTS)
+        _abort("Invalid group option");
+
+    gp = EC_GROUP_new_by_curve_name(OPTS[option]);
     
     G.gp = this;
     G.pt = EC_POINT_new(gp);

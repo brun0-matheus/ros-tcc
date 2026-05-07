@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <gmp.h>
 #include <string.h>
+#include <chrono>
 
 #include "binary_ros.h"
 #include "group.h"
@@ -9,6 +10,9 @@
 #include "random.h"
 #include "client.h"
 #include "server.h"
+
+using std::chrono::high_resolution_clock;
+using std::chrono::duration;
 
 void show_group_stats() {
     static int lst_add = 0, lst_mul = 0, lst_mul_gen = 0, lst_mul_comb = 0;
@@ -95,11 +99,16 @@ void attack(Server *server, random_algo *rnd) {
         return;
     }
 
-    puts("All signatures are valid. Attack was successful.");
+    printf("All %d+1 signatures are valid. Attack was successful.\n", ros.num_sessions());
 }
 
-int main() {
-    Group _gp(0);
+int main(int argc, const char *argv[]) {
+    int opt = 0;
+    if(argc > 1) {
+        opt = atoi(argv[1]);
+    }
+
+    Group _gp(opt);
     Group *gp = &_gp;
     GroupEl::set_default_group(gp);
 
@@ -111,7 +120,13 @@ int main() {
     }
 
     Server server(gp, rnd);
+
+    auto t0 = high_resolution_clock::now();
     attack(&server, rnd);
+    auto t1 = high_resolution_clock::now();
+
+    duration<double> time = t1 - t0;
+    printf("Took %.2lf seconds.\n", time.count());
 
     random_free(&rnd);
     return 0;
