@@ -14,7 +14,7 @@ HEADERS = $(wildcard *.h)
 # remove built-in rule
 %: %.cpp
 
-build/%.o: %.cpp $(HEADERS)
+build/%.o: src/%.cpp $(HEADERS)
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 %: build/%.o $(OBJECTS)
