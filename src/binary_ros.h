@@ -1,5 +1,5 @@
-#ifndef _ROS_H
-#define _ROS_H
+#ifndef _BINARY_ROS_H
+#define _BINARY_ROS_H
 
 #include <vector>
 #include <gmpxx.h>

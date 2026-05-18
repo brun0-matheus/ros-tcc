@@ -100,7 +100,8 @@ def pows_gen(n=7, group_bit_len=256, extra_digits=2):
 
     Returns a list of pairs (base, exponent).
     """
-    max_number = 2 ** group_bit_len
+    #max_number = 2 ** group_bit_len
+    max_number = p
     assert n >= 2
 
     pows = []
@@ -116,10 +117,19 @@ def pows_gen(n=7, group_bit_len=256, extra_digits=2):
         if k == 1:
             e_k = 0
         else:
-            e_k = ceil(log(B * log(p, k + 1) * p ** ((k - 1) / k), k + 1)) + extra_digits
+            e_k = log(B * log(p, k + 1) * p ** ((k - 1) / k), k + 1)
+            '''logp = log(p, k+1)
+            tmp = logp * (k-1)/k
+            tmp2 = log(B * logp, k+1)
+            e_k = tmp2 + log(p, k+1) * (k-1)/k 
+            print(f'Inp tmp2 = {(B * logp).n()}')
+            print(f'logp = {logp.n()}, tmp = {tmp.n()}, tmp2 = {tmp2.n()}, e_k = {e_k.n()}')'''
+            e_k = ceil(e_k) + extra_digits
 
         # Add all powers for this base, from exponent e_k up to max_k - 1.
         pows = [(k + 1, i) for i in range(e_k, max_k)] + pows
+
+        #print(f'{k = }, {e_k = }, {max_k = }, {max_number = }')
 
         # Update the remaining range for the next smaller base.
         max_number = (k + 1) ** e_k
@@ -165,6 +175,11 @@ pows_bases = [i for i, j in factored_pows]
 pows = [i ** j for i, j in factored_pows]
 ell = len(pows)
 print(f'Number of sessions: {ell}')
+
+test = p - 10213
+print(multibase(test, pows)[::-1])
+#for i in range(ell):
+#    print(f'Pot {i}: {factored_pows[i][0]}^{factored_pows[i][1]} = {pows[i]}')
 
 # For each base k, remember where that base starts in the global list.
 e_k = [

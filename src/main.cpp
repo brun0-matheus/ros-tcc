@@ -1,7 +1,9 @@
 #include <stdio.h>
+#include <cmath>
 #include <gmp.h>
 #include <string.h>
 #include <chrono>
+#include <iostream>
 
 #include "binary_ros.h"
 #include "group.h"
@@ -10,6 +12,7 @@
 #include "random.h"
 #include "client.h"
 #include "server.h"
+#include "ros.h"
 
 using std::chrono::high_resolution_clock;
 using std::chrono::duration;
@@ -30,7 +33,7 @@ Bytes get_msg(int i) {
     return ret;
 }
 
-void attack(Server *server, random_algo *rnd) {
+void attack_binary(Server *server, random_algo *rnd) {
     const GroupEl &X = server->pubkey();
     const mpz_class &n = X.order();
     BinaryRos ros(n);
@@ -102,7 +105,25 @@ void attack(Server *server, random_algo *rnd) {
     printf("All %d+1 signatures are valid. Attack was successful.\n", ros.num_sessions());
 }
 
+void attack(Server *server, random_algo *rnd) {
+    Ros ros(server->pubkey().order(), 8);     
+
+    int nsess = ros.num_sessions();
+    //for(int i = 0; i < nsess; i++) {
+    //    gmp_printf("Pot %i: %d^%d = %Zd\n", i, ros.pows_exp[i].first, ros.pows_exp[i].second, ros.pows[i]);
+    //}
+
+    mpz_class test = server->pubkey().order() - 10213;
+    auto dec = ros.decompose_multibase(test);
+    for(int i = 0; i < nsess; i++) printf("%d ", dec[i]);
+    puts("");
+}
+
 int main(int argc, const char *argv[]) {
+    double logB = std::log2((double) GMP_NUMB_MASK);
+    //std::cout << "GMP NUMB MASK " << GMP_NUMB_MASK << std::endl;
+    //std::cout << "logB = " << logB << std::endl;
+
     int opt = 0;
     if(argc > 1) {
         opt = atoi(argv[1]);

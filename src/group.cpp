@@ -16,8 +16,10 @@ static void _abort(const char* msg) {
 
 const Group *GroupEl::default_gp = NULL;
 
-const int NUM_OPTS = 4;
-const int OPTS[NUM_OPTS] = {NID_secp224r1, NID_X9_62_prime256v1, NID_secp384r1, NID_secp521r1};
+//const int NUM_OPTS = 4;
+//const int OPTS[NUM_OPTS] = {NID_secp224r1, NID_X9_62_prime256v1, NID_secp384r1, NID_secp521r1};
+const int NUM_OPTS = 1;
+const int OPTS[NUM_OPTS] = {NID_secp256k1};
 
 Group::Group(int option) {
     if(option < 0 || option >= NUM_OPTS)
