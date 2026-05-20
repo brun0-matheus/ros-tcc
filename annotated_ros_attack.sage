@@ -284,6 +284,7 @@ attempts = 0
 
 while True:
     attempts += 1
+    print(f'Attempt {attempts}')
 
     # Randomize the final linear combination by choosing a fresh alpha.
     extra_alpha = Zp.random_element()

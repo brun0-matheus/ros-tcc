@@ -13,6 +13,8 @@ Server::Server(const Group *_gp, random_algo *_rnd): gp(_gp), rnd(_rnd) {
     const mpz_class& n = gp->order();
     random_below(x, n, rnd);
     X.mul_gen(x);
+
+    //gmp_fprintf(stderr, "privkey = %Zd\n", x);
 }
 
 size_t Server::open_session(GroupEl &U, GroupEl &V) {
@@ -27,6 +29,8 @@ size_t Server::open_session(GroupEl &U, GroupEl &V) {
 
     U.mul_gen(sessions[sess_id].u);
     V.mul_gen(sessions[sess_id].v);
+
+    //gmp_fprintf(stderr, "sess_commit[%d] = (%Zd, %Zd)\n", sess_id, sessions[sess_id].u, sessions[sess_id].v);
 
     return sess_id;
 }
@@ -44,11 +48,7 @@ mpz_class Server::finish_session(size_t sess_id, const mpz_class &c, const mpz_c
     mpz_class ret = sessions[sess_id].v - d * sessions[sess_id].u + tmp*x;
     self_mod(ret, gp->order());
 
-    //mpz_clears(sessions[sess_id].v.get_mpz_t(), sessions[sess_id].u.get_mpz_t(), NULL);
-    //
-    
-    //puts("Server");
-    //gmp_printf("x = %Zd \nu = %Zd \nv = %Zd\n", x, sessions[sess_id].u, sessions[sess_id].v);
+    //gmp_fprintf(stderr, "sess_fim[%d] = (%Zd, %Zd, %Zd)\n", sess_id, c, d, ret);
     return ret;
 }
 

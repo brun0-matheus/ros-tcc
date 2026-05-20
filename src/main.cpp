@@ -3,6 +3,7 @@
 #include <gmp.h>
 #include <string.h>
 #include <chrono>
+#include <cassert>
 #include <iostream>
 
 #include "binary_ros.h"
@@ -106,24 +107,103 @@ void attack_binary(Server *server, random_algo *rnd) {
 }
 
 void attack(Server *server, random_algo *rnd) {
-    Ros ros(server->pubkey().order(), 8);     
+    const GroupEl &X = server->pubkey();
+    const mpz_class &n = X.order();
+    Ros ros(n, 7);
 
-    int nsess = ros.num_sessions();
-    //for(int i = 0; i < nsess; i++) {
-    //    gmp_printf("Pot %i: %d^%d = %Zd\n", i, ros.pows_exp[i].first, ros.pows_exp[i].second, ros.pows[i]);
-    //}
+    std::vector<ClientRosSession> sess;
 
-    mpz_class test = server->pubkey().order() - 10213;
-    auto dec = ros.decompose_multibase(test);
-    for(int i = 0; i < nsess; i++) printf("%d ", dec[i]);
-    puts("");
+    for(int i = 0; i < ros.num_sessions(); i++) {
+        Bytes msg = get_msg(i);
+        sess.emplace_back(server, rnd, ros.num_options(i), msg);
+
+        auto tmp = sess[i].ros_values();
+        for(int j = 0; j < ros.num_options(i); j++) {
+            ros.set_value(i, j, tmp[j]);
+        }
+    }
+
+    std::vector<mpz_class> coefs = ros.compute_coefficients();
+    /*gmp_fprintf(stderr, "coefs = (");
+    for(int i = 0; i < coefs.size(); i++) {
+        if(i) gmp_fprintf(stderr, ",");
+        gmp_fprintf(stderr, "%Zd", coefs[i]);
+    }
+    gmp_fprintf(stderr, ")\n");*/
+
+    //ros.debug_print();
+
+    // Compute forged signature params
+    for(int attempt = 0; attempt < 100; attempt++) {
+        GroupEl forgV, forgU, tmp_el;
+        mpz_class forgc, forgd, forgu, forgw, tmp;
+        Bytes forgMsg = get_msg(-1337);
+
+        printf("Attempt %d...\n", attempt+1);
+
+        // U
+        random_below(forgu, n, rnd);
+        forgU.mul_gen(forgu);
+
+        // V
+        for(int i = 0; i < ros.num_sessions(); i++) {
+            // -rho * d * U
+            tmp = (n - sess[i].d) * coefs[i];
+            self_mod(tmp, n);
+            tmp_el.mul(sess[i].U, tmp);
+            forgV.add(forgV, tmp_el);
+            
+            // rho * V
+            tmp_el.mul(sess[i].V, coefs[i]);
+            forgV.add(forgV, tmp_el);
+        }
+
+        calc_hash(forgc, forgd, X, forgU, forgV, forgMsg);
+
+        // Do ros
+        mpz_class target = forgc * forgd;
+        self_mod(target, n);
+        std::vector<int> selected = ros.select_challenges(target);
+        if(selected.empty()) continue;
+
+        mpz_class test1 = 0;
+        for(int i = 0; i < ros.num_sessions(); i++) {
+            int opt = selected[i];
+
+            test1 += coefs[i] * (sess[i].c[opt] * sess[i].d % n);
+
+            Signature sig = sess[i].finish_sign(opt, tmp);
+            if(!sig.validate()) {
+                printf("Signature %d is invalid.\n", i);
+                return;
+            }
+
+            forgw += coefs[i] * tmp;
+        }
+
+        test1 %= n;
+        assert(test1 == target);
+
+        forgw -= forgd * forgu;
+        self_mod(forgw, n);
+
+        //gmp_fprintf(stderr, "forgw, forgu, forgc, forgd = %Zd, %Zd, %Zd, %Zd\n", forgw, forgu, forgc, forgd);
+        //fprintf(stderr, "X, forgU, forgV = %s, %s, %s\n", X.str(), forgU.str(), forgV.str());
+
+        Signature forgSig(forgw, forgU, forgV, X, forgMsg);
+        if(!forgSig.validate()) {
+            puts("Forged signature is invalid.");
+            return;
+        }
+
+        printf("All %d+1 signatures are valid. Attack was successful.\n", ros.num_sessions());
+        return;
+    }
+
+    puts("Decomposition failed, resample the lattices");
 }
 
 int main(int argc, const char *argv[]) {
-    double logB = std::log2((double) GMP_NUMB_MASK);
-    //std::cout << "GMP NUMB MASK " << GMP_NUMB_MASK << std::endl;
-    //std::cout << "logB = " << logB << std::endl;
-
     int opt = 0;
     if(argc > 1) {
         opt = atoi(argv[1]);
@@ -141,6 +221,20 @@ int main(int argc, const char *argv[]) {
     }
 
     Server server(gp, rnd);
+
+    /*
+    mpz_class u, v, c, d;
+    GroupEl U, V;
+    const GroupEl &X = server.pubkey();
+    const mpz_class &n = X.order();
+    random_below(u, n, rnd);
+    random_below(v, n, rnd);
+    U.mul_gen(u);
+    V.mul_gen(v);
+    calc_hash(c, d, X, U, V, get_msg(0));
+    gmp_printf("X = %s\nU = %s\nV = %s\nc = %Zd\nd = %Zd\n", X.str(), U.str(), V.str(), c, d);
+    return 0;
+    */
 
     auto t0 = high_resolution_clock::now();
     attack(&server, rnd);

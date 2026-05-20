@@ -1,5 +1,6 @@
 #include <string.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <openssl/sha.h>
 
 #include "hash.h" 
@@ -14,6 +15,13 @@ void finish_hash(SHA256_CTX ctx, char opt, mpz_t out, const mpz_t n) {
 
     mp_limb_t *buf = mpz_limbs_write(out, numlimb);
     SHA256_Final((unsigned char *) buf, &ctx);
+
+    /*printf("Digest: ");
+    for(int i = 0; i < 32; i++) {
+        unsigned char c = ((unsigned char *) buf)[i];
+        printf("%02hhx", c);
+    }
+    puts("");*/
 
     mpz_limbs_finish(out, numlimb);
     mpz_mod(out, out, n);
@@ -34,16 +42,21 @@ void calc_hash(
 
     char *s = X.str();
     SHA256_Update(&ctx, s, strlen(s));
+    //printf(s);
     free(s);
 
     s = U.str();
     SHA256_Update(&ctx, s, strlen(s));
+    //printf(s);
     free(s);
 
     s = V.str();
     SHA256_Update(&ctx, s, strlen(s));
+    //printf(s);
     free(s);
 
+    //for(int i = 0; i < msg.size(); i++) putchar(msg.data()[i]);
+    //puts("");
     SHA256_Update(&ctx, msg.data(), msg.size());
 
     // Calculate c
