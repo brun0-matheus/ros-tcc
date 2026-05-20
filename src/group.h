@@ -5,6 +5,9 @@
 #include <openssl/bn.h>
 #include <gmpxx.h>
 
+#define NUM_GROUP_OPTIONS 5
+extern const char *GROUP_OPTION_NAMES[NUM_GROUP_OPTIONS]; 
+
 class GroupEl;
 class Group;
 
@@ -57,7 +60,6 @@ public:
 
     friend class GroupEl;
 };
-
 
 extern int cnt_group_add, cnt_group_mul, cnt_group_mul_gen, cnt_group_mul_comb;
 

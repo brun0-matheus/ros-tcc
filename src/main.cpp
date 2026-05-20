@@ -106,10 +106,10 @@ void attack_binary(Server *server, random_algo *rnd) {
     printf("All %d+1 signatures are valid. Attack was successful.\n", ros.num_sessions());
 }
 
-void attack(Server *server, random_algo *rnd) {
+void attack(Server *server, random_algo *rnd, int num_dim) {
     const GroupEl &X = server->pubkey();
     const mpz_class &n = X.order();
-    Ros ros(n, 7);
+    Ros ros(n, num_dim);
 
     std::vector<ClientRosSession> sess;
 
@@ -197,17 +197,40 @@ void attack(Server *server, random_algo *rnd) {
         }
 
         printf("All %d+1 signatures are valid. Attack was successful.\n", ros.num_sessions());
+        printf("Number of attempts: %d\n", attempt+1);
         return;
     }
 
     puts("Decomposition failed, resample the lattices");
 }
 
-int main(int argc, const char *argv[]) {
-    int opt = 0;
-    if(argc > 1) {
-        opt = atoi(argv[1]);
+void parse_args(int argc, const char *argv[], int &opt_gp, int &num_dim) {
+    if(argc != 3) {
+        puts("Usage: ./main <GROUP_OPTION> <NUMBER_DIMENSION>");
+        puts("GROUP_OPTION is an integer from this list:");
+        for(int i = 0; i < NUM_GROUP_OPTIONS; i++) {
+            printf("  %d - %s\n", i, GROUP_OPTION_NAMES[i]);
+        }
+        puts("NUMBER_DIMENSION can be either 0 for the original ros, or the maximum dimension for the ros with reduced dimension.");
+        exit(1);
     }
+
+    opt_gp = atoi(argv[1]);
+    if(opt_gp < 0 || opt_gp >= NUM_GROUP_OPTIONS) {
+        puts("Invaild group option");
+        exit(1);
+    }
+
+    num_dim = atoi(argv[2]);
+    if(num_dim < 0 || num_dim == 1) {
+        puts("Invalid number of dimensions. It can be either 0 (original ros) or > 1");
+        exit(1);
+    }
+}
+
+int main(int argc, const char *argv[]) {
+    int opt, num_dim;
+    parse_args(argc, argv, opt, num_dim);
 
     Group _gp(opt);
     Group *gp = &_gp;
@@ -237,7 +260,11 @@ int main(int argc, const char *argv[]) {
     */
 
     auto t0 = high_resolution_clock::now();
-    attack(&server, rnd);
+    if(num_dim == 0) {
+        attack_binary(&server, rnd);
+    } else {
+        attack(&server, rnd, num_dim);
+    }
     auto t1 = high_resolution_clock::now();
 
     duration<double> time = t1 - t0;

@@ -7,6 +7,9 @@
 #include <string.h>
 #include <stdarg.h>
 
+const int GROUP_OPTIONS[NUM_GROUP_OPTIONS] = {NID_secp224r1, NID_X9_62_prime256v1, NID_secp384r1, NID_secp521r1, NID_secp256k1};
+const char *GROUP_OPTION_NAMES[NUM_GROUP_OPTIONS] = {"P224", "P256", "P384", "P521", "secp256k1"};
+
 int cnt_group_add = 0, cnt_group_mul = 0, cnt_group_mul_gen = 0, cnt_group_mul_comb = 0;
 
 static void _abort(const char* msg) {
@@ -16,16 +19,11 @@ static void _abort(const char* msg) {
 
 const Group *GroupEl::default_gp = NULL;
 
-//const int NUM_OPTS = 4;
-//const int OPTS[NUM_OPTS] = {NID_secp224r1, NID_X9_62_prime256v1, NID_secp384r1, NID_secp521r1};
-const int NUM_OPTS = 1;
-const int OPTS[NUM_OPTS] = {NID_secp256k1};
-
 Group::Group(int option) {
-    if(option < 0 || option >= NUM_OPTS)
+    if(option < 0 || option >= NUM_GROUP_OPTIONS)
         _abort("Invalid group option");
 
-    gp = EC_GROUP_new_by_curve_name(OPTS[option]);
+    gp = EC_GROUP_new_by_curve_name(GROUP_OPTIONS[option]);
     
     G.gp = this;
     G.pt = EC_POINT_new(gp);
