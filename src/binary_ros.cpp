@@ -1,6 +1,11 @@
 #include "binary_ros.h"
 #include "utils.h"
 
+static void _abort(const char* msg) {
+    puts(msg);
+    exit(1);
+}
+
 int _idx(int sess_id, int idx) {
     return 2*sess_id + idx;
 }
@@ -49,3 +54,9 @@ std::vector<int> BinaryRos::select_challenges(const mpz_class &target) const {
 }
 
 int BinaryRos::num_sessions() const { return num_sess; }
+
+int BinaryRos::num_options(int sess_id) const {
+    if(sess_id < 0 || sess_id >= num_sessions())
+        _abort("Invalid session id");
+    return 2;
+}
