@@ -5,3 +5,4 @@ main
 benchmark
 test_bs
 test_babai
+*.csv
