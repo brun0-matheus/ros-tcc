@@ -1,4 +1,4 @@
-LIBS = -lm -lcrypto -lgmp -lgmpxx -lfplll -lqd -lpthread -lmpfr
+LIBS = -lm -lcrypto -lgmp -lgmpxx -lfplll -lpthread -lmpfr
 CXX = g++
 CXXFLAGS = -O2 -Wall -g
 
