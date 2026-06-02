@@ -12,6 +12,11 @@ def algo_from_name(name: str) -> Algo:
     t,c,d = name.strip().split('_')
     return Algo(t,c), int(d)
 
+def median(lst):
+    lst = list(lst)
+    lst.sort()
+    return lst[len(lst)//2]
+
 times, success, attempts, sessions, cnt = [dict() for _ in range(5)]
 times_list = dict()
 
@@ -52,51 +57,56 @@ for _, c in cnt.items():
 
     assert all(x == CNT or x == 0 for x in c)
 
+MARKERS = '.ovxsp*D'
+
 # Time 
-x = [0] + list(range(2, MAX_DIM+1))
-for algo, t in times.items():
+dims = list(range(2, MAX_DIM+1))
+for i, (algo, t) in enumerate(times.items()):
     type, curve = algo
-    y = t[:1] + t[2:MAX_DIM+1]
+    y = t[2:MAX_DIM+1]
     y = [v/CNT for v in y]
 
     line = '-' if type == 'cpp' else '--'
-    plt.plot(x, y, line + curve_colors[curve], label=f'{curve} ({type})')
+    plt.plot(dims, y, line + curve_colors[curve] + MARKERS[i], label=f'{curve} ({type})')
 
-plt.ylabel('Time (s)')
-plt.xlabel('Number of dimensions')
-plt.title('Average running time over multiple curves')
+plt.xticks(dims)
+plt.ylabel('Tempo (s)')
+plt.xlabel('Dimensão da base')
+#plt.title('Average running time over multiple curves')
 plt.legend()
 plt.show()
 
 # Success rate
 x = list(range(3, MAX_DIM + 1))
-for algo, suc in success.items():
+for i, (algo, suc) in enumerate(success.items()):
     type, curve = algo
     assert suc[0] == CNT 
     assert suc[2] == CNT 
 
-    y = suc[3:MAX_DIM+1]
+    y = suc[2:MAX_DIM+1]
     y = [v/CNT for v in y]
 
     line = '-' if type == 'cpp' else '--'
-    plt.plot(x, y, line + curve_colors[curve], label=f'{curve} ({type})')
+    plt.plot(dims, y, line + curve_colors[curve] + MARKERS[i], label=f'{curve} ({type})')
 
-plt.ylabel('Success rate')
-plt.xlabel('Number of dimensions')
-plt.title('Success rate over multiple curves')
+plt.xticks(dims)
+plt.ylabel('Taxa de sucesso')
+plt.xlabel('Dimensão da base')
+#plt.title('Success rate over multiple curves')
 plt.legend()
 plt.show()
 
 # Big table 
 
+"""
 def print_table(type):
     print(f'Table for {type}:')
     curves = list(all_curves)
     curves.sort()
 
     print(r'''\begin{table}[]
-\begin{tabular}{lllll}
-\textbf{Curve} & \textbf{Maximum dimension} & \textbf{Time (s)} & \textbf{Success Rate} & \textbf{Number of Sessions} \\
+#\begin{tabular}{lllll}
+#\textbf{Curve} & \textbf{Maximum dimension} & \textbf{Time (s)} & \textbf{Success Rate} & \textbf{Number of Sessions} \\
 ''')
     for curve in curves:
         algo = Algo(type, curve)
@@ -114,3 +124,36 @@ def print_table(type):
 
 print_table('cpp')
 print_table('sage')
+"""
+
+# Number of sessions table 
+print('Table of number of sessions: \n')
+print(r'\begin{table}')
+print(r'\begin{tabular}{' + 'l'*(len(dims)+1) + '}')
+print('~ & ' + ' & '.join(r'\textbf{' + str(d) + '}' for d in dims) + r'\\')
+curves = list(all_curves)
+curves.sort()
+
+for curve in curves:
+    algo = Algo('cpp', curve)
+    print(r'\textbf{' + curve + '} & ' + ' & '.join(str(sessions[algo][d]//CNT)for d in dims) + r'\\')
+print('\\end{tabular}\n\\end{table}')
+
+# Original ros performance dif table
+
+print('\nTable ros performance binary difference: \n')
+print(r'\begin{table}')
+print(r'\begin{tabular}{lll}')
+print(r'~ & \textbf{Sage} & \textbf{C++} \\')
+for curve in curves:
+    tmp = []
+    for type in ['sage', 'cpp']:
+        algo = Algo(type, curve)
+        #t = median(times_list[algo][0])
+        t = times[algo][0] / CNT
+        tmp.append(f'{t:.2f}')
+
+    print(r'\textbf{' + curve + '} & ' + ' & '.join(tmp) + r'\\')
+print('\\end{tabular}\n\\end{table}')
+
+
